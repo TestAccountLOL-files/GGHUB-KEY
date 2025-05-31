@@ -116,6 +116,10 @@ local function createMainGUI()
     -- Global bayrak
     _G.isRunning = false
 
+    -- Keybind değişkenleri
+    local guiKeybind = "F"
+    local toggleKeybind = "Q"
+
     -- ScreenGui oluştur
     local player = game.Players.LocalPlayer
     local playerGui = player.PlayerGui
@@ -126,8 +130,8 @@ local function createMainGUI()
 
     -- Ana çerçeve (Frame)
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 300, 0, 200)
-    frame.Position = UDim2.new(0.5, -150, 0.5, -100)
+    frame.Size = UDim2.new(0, 300, 0, 280) -- Yükseklik artırıldı
+    frame.Position = UDim2.new(0.5, -150, 0.5, -140)
     frame.BackgroundColor3 = Color3.fromRGB(20, 10, 30)
     frame.BorderSizePixel = 0
     frame.Parent = screenGui
@@ -224,6 +228,58 @@ local function createMainGUI()
     statusLabel.Font = Enum.Font.Gotham
     statusLabel.Parent = frame
 
+    -- GUI Keybind etiketi
+    local guiKeybindLabel = Instance.new("TextLabel")
+    guiKeybindLabel.Size = UDim2.new(0, 100, 0, 30)
+    guiKeybindLabel.Position = UDim2.new(0.15, 0, 0.75, 0)
+    guiKeybindLabel.BackgroundTransparency = 1
+    guiKeybindLabel.Text = "GUI Keybind:"
+    guiKeybindLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    guiKeybindLabel.TextScaled = true
+    guiKeybindLabel.Font = Enum.Font.Gotham
+    guiKeybindLabel.Parent = frame
+
+    -- GUI Keybind textbox
+    local guiKeybindTextbox = Instance.new("TextBox")
+    guiKeybindTextbox.Size = UDim2.new(0, 30, 0, 30)
+    guiKeybindTextbox.Position = UDim2.new(0.65, 0, 0.75, 0)
+    guiKeybindTextbox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    guiKeybindTextbox.Text = guiKeybind
+    guiKeybindTextbox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    guiKeybindTextbox.TextScaled = true
+    guiKeybindTextbox.Font = Enum.Font.GothamBold
+    guiKeybindTextbox.Parent = frame
+
+    local guiKeybindCorner = Instance.new("UICorner")
+    guiKeybindCorner.CornerRadius = UDim.new(0, 5)
+    guiKeybindCorner.Parent = guiKeybindTextbox
+
+    -- Toggle Keybind etiketi
+    local toggleKeybindLabel = Instance.new("TextLabel")
+    toggleKeybindLabel.Size = UDim2.new(0, 100, 0, 30)
+    toggleKeybindLabel.Position = UDim2.new(0.15, 0, 0.85, 0)
+    toggleKeybindLabel.BackgroundTransparency = 1
+    toggleKeybindLabel.Text = "Toggle Keybind:"
+    toggleKeybindLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleKeybindLabel.TextScaled = true
+    toggleKeybindLabel.Font = Enum.Font.Gotham
+    toggleKeybindLabel.Parent = frame
+
+    -- Toggle Keybind textbox
+    local toggleKeybindTextbox = Instance.new("TextBox")
+    toggleKeybindTextbox.Size = UDim2.new(0, 30, 0, 30)
+    toggleKeybindTextbox.Position = UDim2.new(0.65, 0, 0.85, 0)
+    toggleKeybindTextbox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    toggleKeybindTextbox.Text = toggleKeybind
+    toggleKeybindTextbox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleKeybindTextbox.TextScaled = true
+    toggleKeybindTextbox.Font = Enum.Font.GothamBold
+    toggleKeybindTextbox.Parent = frame
+
+    local toggleKeybindCorner = Instance.new("UICorner")
+    toggleKeybindCorner.CornerRadius = UDim.new(0, 5)
+    toggleKeybindCorner.Parent = toggleKeybindTextbox
+
     -- Neon efekt (buton için)
     local toggleStroke = Instance.new("UIStroke")
     toggleStroke.Thickness = 2
@@ -269,32 +325,7 @@ local function createMainGUI()
     end)
 
     -- Kapatma butonu işlevi
-    closeButton.MouseButton1Click:Connect(function()
-        _G.isRunning = false
-        screenGui:Destroy()
-    end)
-
-    -- Küçültme butonu işlevi
-    local isMinimized = false
-    minimizeButton.MouseButton1Click:Connect(function()
-        isMinimized = not isMinimized
-        if isMinimized then
-            local tween = TweenService:Create(frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 300, 0, 30)})
-            tween:Play()
-            toggleButton.Visible = false
-            statusLabel.Visible = false
-            minimizeButton.Text = "+"
-        else
-            local tween = TweenService:Create(frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 300, 0, 200)})
-            tween:Play()
-            toggleButton.Visible = true
-            statusLabel.Visible = true
-            minimizeButton.Text = "-"
-        end
-    end)
-
-    -- Toggle butonu işlevi
-    toggleButton.MouseButton1Click:Connect(function()
+    local function toggleState()
         _G.isRunning = not _G.isRunning
         if _G.isRunning then
             toggleButton.Text = "ON"
@@ -315,6 +346,81 @@ local function createMainGUI()
             statusLabel.Text = "Status: OFF"
             statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
             toggleStroke.Enabled = false
+        end
+    end
+
+    closeButton.MouseButton1Click:Connect(function()
+        if _G.isRunning then
+            toggleState()
+        end
+        screenGui:Destroy()
+    end)
+
+    -- Küçültme butonu işlevi
+    local isMinimized = false
+    minimizeButton.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+        if isMinimized then
+            local tween = TweenService:Create(frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 300, 0, 30)})
+            tween:Play()
+            toggleButton.Visible = false
+            statusLabel.Visible = false
+            guiKeybindLabel.Visible = false
+            guiKeybindTextbox.Visible = false
+            toggleKeybindLabel.Visible = false
+            toggleKeybindTextbox.Visible = false
+            minimizeButton.Text = "+"
+        else
+            local tween = TweenService:Create(frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 300, 0, 280)})
+            tween:Play()
+            toggleButton.Visible = true
+            statusLabel.Visible = true
+            guiKeybindLabel.Visible = true
+            guiKeybindTextbox.Visible = true
+            toggleKeybindLabel.Visible = true
+            toggleKeybindTextbox.Visible = true
+            minimizeButton.Text = "-"
+        end
+    end)
+
+    -- Toggle butonu işlevi
+    toggleButton.MouseButton1Click:Connect(toggleState)
+
+    -- Keybind textbox işlevleri
+    guiKeybindTextbox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local input = guiKeybindTextbox.Text:upper()
+            if #input == 1 and input:match("%w") then
+                guiKeybind = input
+                guiKeybindTextbox.Text = input
+            else
+                guiKeybindTextbox.Text = guiKeybind
+            end
+        end
+    end)
+
+    toggleKeybindTextbox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local input = toggleKeybindTextbox.Text:upper()
+            if #input == 1 and input:match("%w") then
+                toggleKeybind = input
+                toggleKeybindTextbox.Text = input
+            else
+                toggleKeybindTextbox.Text = toggleKeybind
+            end
+        end
+    end)
+
+    -- Keybind dinleyicisi
+    UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+        if gameProcessedEvent then return end
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            local key = input.KeyCode.Name:upper()
+            if key == guiKeybind then
+                screenGui.Enabled = not screenGui.Enabled
+            elseif key == toggleKeybind then
+                toggleState()
+            end
         end
     end)
 
