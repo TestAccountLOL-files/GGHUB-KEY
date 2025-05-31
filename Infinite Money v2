@@ -1,0 +1,360 @@
+-- Hizmetleri al
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local TeleportService = game:GetService("TeleportService")
+
+-- PlaceId kontrolü
+local SUPPORTED_PLACE_ID = 18683316504
+local currentPlaceId = game.PlaceId
+
+-- Bildirim GUI'si (PlaceId uyuşmazsa gösterilecek)
+local function createNotification()
+    local player = game.Players.LocalPlayer
+    local playerGui = player.PlayerGui
+    local notificationGui = Instance.new("ScreenGui")
+    notificationGui.Name = "NotificationGUI"
+    notificationGui.Parent = playerGui
+    notificationGui.ResetOnSpawn = false
+
+    -- Arkaplanı karartan çerçeve
+    local backdrop = Instance.new("Frame")
+    backdrop.Size = UDim2.new(1, 0, 1, 0)
+    backdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    backdrop.BackgroundTransparency = 0.5
+    backdrop.Parent = notificationGui
+
+    -- Bildirim çerçevesi
+    local notificationFrame = Instance.new("Frame")
+    notificationFrame.Size = UDim2.new(0, 400, 0, 200)
+    notificationFrame.Position = UDim2.new(0.5, -200, 0.5, -100)
+    notificationFrame.BackgroundColor3 = Color3.fromRGB(20, 10, 30)
+    notificationFrame.BorderSizePixel = 0
+    notificationFrame.Parent = notificationGui
+
+    local notificationCorner = Instance.new("UICorner")
+    notificationCorner.CornerRadius = UDim.new(0, 10)
+    notificationCorner.Parent = notificationFrame
+
+    -- Bildirim metni
+    local notificationText = Instance.new("TextLabel")
+    notificationText.Size = UDim2.new(0.9, 0, 0.4, 0)
+    notificationText.Position = UDim2.new(0.05, 0, 0.1, 0)
+    notificationText.BackgroundTransparency = 1
+    notificationText.Text = "Unsupported Game! Want Join?"
+    notificationText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    notificationText.TextScaled = true
+    notificationText.Font = Enum.Font.GothamBold
+    notificationText.Parent = notificationFrame
+
+    -- Evet butonu
+    local yesButton = Instance.new("TextButton")
+    yesButton.Size = UDim2.new(0, 100, 0, 40)
+    yesButton.Position = UDim2.new(0.2, 0, 0.6, 0)
+    yesButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    yesButton.Text = "Yes"
+    yesButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    yesButton.TextScaled = true
+    yesButton.Font = Enum.Font.GothamBold
+    yesButton.Parent = notificationFrame
+
+    local yesCorner = Instance.new("UICorner")
+    yesCorner.CornerRadius = UDim.new(0, 10)
+    yesCorner.Parent = yesButton
+
+    -- Hayır butonu
+    local noButton = Instance.new("TextButton")
+    noButton.Size = UDim2.new(0, 100, 0, 40)
+    noButton.Position = UDim2.new(0.55, 0, 0.6, 0)
+    noButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    noButton.Text = "No"
+    noButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    noButton.TextScaled = true
+    noButton.Font = Enum.Font.GothamBold
+    noButton.Parent = notificationFrame
+
+    local noCorner = Instance.new("UICorner")
+    noCorner.CornerRadius = UDim.new(0, 10)
+    noCorner.Parent = noButton
+
+    -- Buton işlevleri
+    yesButton.MouseButton1Click:Connect(function()
+        TeleportService:Teleport(SUPPORTED_PLACE_ID)
+    end)
+
+    noButton.MouseButton1Click:Connect(function()
+        notificationGui:Destroy()
+    end)
+
+    -- Buton hover efektleri
+    yesButton.MouseEnter:Connect(function()
+        local tween = TweenService:Create(yesButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 255, 0)})
+        tween:Play()
+    end)
+
+    yesButton.MouseLeave:Connect(function()
+        local tween = TweenService:Create(yesButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 200, 0)})
+        tween:Play()
+    end)
+
+    noButton.MouseEnter:Connect(function()
+        local tween = TweenService:Create(noButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 50, 50)})
+        tween:Play()
+    end)
+
+    noButton.MouseLeave:Connect(function()
+        local tween = TweenService:Create(noButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(200, 50, 50)})
+        tween:Play()
+    end)
+end
+
+-- Ana GUI oluşturma fonksiyonu
+local function createMainGUI()
+    -- ClaimService yolu (sadece supported oyunda tanımlı)
+    local ClaimService = ReplicatedStorage.Packages.Knit.Services.ClaimService.RE.ClaimChest
+
+    -- Global bayrak
+    _G.isRunning = false
+
+    -- ScreenGui oluştur
+    local player = game.Players.LocalPlayer
+    local playerGui = player.PlayerGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "InfiniteMoneyGUI"
+    screenGui.Parent = playerGui
+    screenGui.ResetOnSpawn = false
+
+    -- Ana çerçeve (Frame)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 300, 0, 200)
+    frame.Position = UDim2.new(0.5, -150, 0.5, -100)
+    frame.BackgroundColor3 = Color3.fromRGB(20, 10, 30)
+    frame.BorderSizePixel = 0
+    frame.Parent = screenGui
+
+    -- Yuvarlatılmış kenarlar
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = frame
+
+    -- Gradient arka plan
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 30, 60)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 10, 30))
+    }
+    gradient.Rotation = 45
+    gradient.Parent = frame
+
+    -- Başlık çubuğu
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1, 0, 0, 30)
+    titleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    titleBar.BorderSizePixel = 0
+    titleBar.Parent = frame
+
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 10)
+    titleCorner.Parent = titleBar
+
+    -- Başlık metni
+    local titleText = Instance.new("TextLabel")
+    titleText.Size = UDim2.new(0.7, 0, 1, 0)
+    titleText.Position = UDim2.new(0.1, 0, 0, 0)
+    titleText.BackgroundTransparency = 1
+    titleText.Text = "Infinite Money"
+    titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleText.TextScaled = true
+    titleText.Font = Enum.Font.GothamBold
+    titleText.Parent = titleBar
+
+    -- Kapatma butonu (X)
+    local closeButton = Instance.new("TextButton")
+    closeButton.Size = UDim2.new(0, 30, 0, 30)
+    closeButton.Position = UDim2.new(1, -30, 0, 0)
+    closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeButton.Text = "X"
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.TextScaled = true
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.Parent = titleBar
+
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 5)
+    closeCorner.Parent = closeButton
+
+    -- Küçültme butonu (-)
+    local minimizeButton = Instance.new("TextButton")
+    minimizeButton.Size = UDim2.new(0, 30, 0, 30)
+    minimizeButton.Position = UDim2.new(1, -60, 0, 0)
+    minimizeButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    minimizeButton.Text = "-"
+    minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minimizeButton.TextScaled = true
+    minimizeButton.Font = Enum.Font.GothamBold
+    minimizeButton.Parent = titleBar
+
+    local minimizeCorner = Instance.new("UICorner")
+    minimizeCorner.CornerRadius = UDim.new(0, 5)
+    minimizeCorner.Parent = minimizeButton
+
+    -- Toggle butonu
+    local toggleButton = Instance.new("TextButton")
+    toggleButton.Size = UDim2.new(0, 100, 0, 40)
+    toggleButton.Position = UDim2.new(0.5, -50, 0.4, 0)
+    toggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    toggleButton.Text = "OFF"
+    toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleButton.TextScaled = true
+    toggleButton.Font = Enum.Font.GothamBold
+    toggleButton.Parent = frame
+
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(0, 10)
+    toggleCorner.Parent = toggleButton
+
+    -- Durum göstergesi
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Size = UDim2.new(0, 200, 0, 30)
+    statusLabel.Position = UDim2.new(0.5, -100, 0.65, 0)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Text = "Status: OFF"
+    statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+    statusLabel.TextScaled = true
+    statusLabel.Font = Enum.Font.Gotham
+    statusLabel.Parent = frame
+
+    -- Neon efekt (buton için)
+    local toggleStroke = Instance.new("UIStroke")
+    toggleStroke.Thickness = 2
+    toggleStroke.Color = Color3.fromRGB(0, 255, 255)
+    toggleStroke.Enabled = false
+    toggleStroke.Parent = toggleButton
+
+    -- Sürükleme (Draggable) özelliği
+    local dragging
+    local dragInput
+    local dragStart
+    local startPos
+
+    local function updateInput(input)
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    titleBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            updateInput(input)
+        end
+    end)
+
+    -- Kapatma butonu işlevi
+    closeButton.MouseButton1Click:Connect(function()
+        _G.isRunning = false
+        screenGui:Destroy()
+    end)
+
+    -- Küçültme butonu işlevi
+    local isMinimized = false
+    minimizeButton.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+        if isMinimized then
+            local tween = TweenService:Create(frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 300, 0, 30)})
+            tween:Play()
+            toggleButton.Visible = false
+            statusLabel.Visible = false
+            minimizeButton.Text = "+"
+        else
+            local tween = TweenService:Create(frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 300, 0, 200)})
+            tween:Play()
+            toggleButton.Visible = true
+            statusLabel.Visible = true
+            minimizeButton.Text = "-"
+        end
+    end)
+
+    -- Toggle butonu işlevi
+    toggleButton.MouseButton1Click:Connect(function()
+        _G.isRunning = not _G.isRunning
+        if _G.isRunning then
+            toggleButton.Text = "ON"
+            toggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+            statusLabel.Text = "Status: ON"
+            statusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+            toggleStroke.Enabled = true
+
+            spawn(function()
+                while _G.isRunning do
+                    pcall(function()
+                        ClaimService:FireServer("DailyChest") -- Chest parametresi eklendi
+                    end)
+                    task.wait(0.58) -- 0.87 saniye bekleme süresi
+                end
+            end)
+        else
+            toggleButton.Text = "OFF"
+            toggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+            statusLabel.Text = "Status: OFF"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+            toggleStroke.Enabled = false
+        end
+    end)
+
+    -- Buton hover efektleri
+    toggleButton.MouseEnter:Connect(function()
+        local tween = TweenService:Create(toggleButton, TweenInfo.new(0.2), {BackgroundColor3 = _G.isRunning and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(150, 150, 150)})
+        tween:Play()
+    end)
+
+    toggleButton.MouseLeave:Connect(function()
+        local tween = TweenService:Create(toggleButton, TweenInfo.new(0.2), {BackgroundColor3 = _G.isRunning and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(100, 100, 100)})
+        tween:Play()
+    end)
+
+    closeButton.MouseEnter:Connect(function()
+        local tween = TweenService:Create(closeButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 50, 50)})
+        tween:Play()
+    end)
+
+    closeButton.MouseLeave:Connect(function()
+        local tween = TweenService:Create(closeButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(200, 50, 50)})
+        tween:Play()
+    end)
+
+    minimizeButton.MouseEnter:Connect(function()
+        local tween = TweenService:Create(minimizeButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(80, 80, 80)})
+        tween:Play()
+    end)
+
+    minimizeButton.MouseLeave:Connect(function()
+        local tween = TweenService:Create(minimizeButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 50)})
+        tween:Play()
+    end)
+end
+
+-- PlaceId kontrolü ve uygun GUI'yi gösterme
+if currentPlaceId == SUPPORTED_PLACE_ID then
+    createMainGUI()
+else
+    createNotification()
+end
