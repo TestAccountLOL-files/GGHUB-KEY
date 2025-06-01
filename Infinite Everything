@@ -1,0 +1,694 @@
+-- Hizmetleri al
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local TeleportService = game:GetService("TeleportService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- PlaceId kontrolü
+local SUPPORTED_PLACE_ID = 8200787440
+local currentPlaceId = game.PlaceId
+
+-- Bildirim GUI'si (PlaceId uyuşmazsa gösterilecek)
+local function createNotification()
+    local success, err = pcall(function()
+        local player = game.Players.LocalPlayer
+        local playerGui = player.PlayerGui
+        local notificationGui = Instance.new("ScreenGui")
+        notificationGui.Name = "NotificationGUI"
+        notificationGui.Parent = playerGui
+        notificationGui.ResetOnSpawn = false
+
+        local backdrop = Instance.new("Frame")
+        backdrop.Size = UDim2.new(1, 0, 1, 0)
+        backdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        backdrop.BackgroundTransparency = 0.5
+        backdrop.Parent = notificationGui
+
+        local notificationFrame = Instance.new("Frame")
+        notificationFrame.Size = UDim2.new(0, 400, 0, 200)
+        notificationFrame.Position = UDim2.new(0.5, -200, 0.5, -100)
+        notificationFrame.BackgroundColor3 = Color3.fromRGB(20, 10, 30)
+        notificationFrame.BorderSizePixel = 0
+        notificationFrame.Parent = notificationGui
+
+        local notificationCorner = Instance.new("UICorner")
+        notificationCorner.CornerRadius = UDim.new(0, 10)
+        notificationCorner.Parent = notificationFrame
+
+        local notificationText = Instance.new("TextLabel")
+        notificationText.Size = UDim2.new(0.9, 0, 0.4, 0)
+        notificationText.Position = UDim2.new(0.05, 0, 0.1, 0)
+        notificationText.BackgroundTransparency = 1
+        notificationText.Text = "Unsupported Game! Want Join?"
+        notificationText.TextColor3 = Color3.fromRGB(255, 255, 255)
+        notificationText.TextScaled = true
+        notificationText.Font = Enum.Font.GothamBold
+        notificationText.Parent = notificationFrame
+
+        local yesButton = Instance.new("TextButton")
+        yesButton.Size = UDim2.new(0, 100, 0, 40)
+        yesButton.Position = UDim2.new(0.2, 0, 0.6, 0)
+        yesButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+        yesButton.Text = "Yes"
+        yesButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        yesButton.TextScaled = true
+        yesButton.Font = Enum.Font.GothamBold
+        yesButton.Parent = notificationFrame
+
+        local yesCorner = Instance.new("UICorner")
+        yesCorner.CornerRadius = UDim.new(0, 10)
+        yesCorner.Parent = yesButton
+
+        local noButton = Instance.new("TextButton")
+        noButton.Size = UDim2.new(0, 100, 0, 40)
+        noButton.Position = UDim2.new(0.55, 0, 0.6, 0)
+        noButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        noButton.Text = "No"
+        noButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        noButton.TextScaled = true
+        noButton.Font = Enum.Font.GothamBold
+        noButton.Parent = notificationFrame
+
+        local noCorner = Instance.new("UICorner")
+        noCorner.CornerRadius = UDim.new(0, 10)
+        noCorner.Parent = noButton
+
+        yesButton.MouseButton1Click:Connect(function()
+            TeleportService:Teleport(SUPPORTED_PLACE_ID)
+        end)
+
+        noButton.MouseButton1Click:Connect(function()
+            notificationGui:Destroy()
+        end)
+
+        yesButton.MouseEnter:Connect(function()
+            local tween = TweenService:Create(yesButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 255, 0)})
+            tween:Play()
+        end)
+
+        yesButton.MouseLeave:Connect(function()
+            local tween = TweenService:Create(yesButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 200, 0)})
+            tween:Play()
+        end)
+
+        noButton.MouseEnter:Connect(function()
+            local tween = TweenService:Create(noButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 50, 50)})
+            tween:Play()
+        end)
+
+        noButton.MouseLeave:Connect(function()
+            local tween = TweenService:Create(noButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(200, 50, 50)})
+            tween:Play()
+        end)
+    end)
+    if not success then
+        warn("Notification GUI creation failed:", err)
+    end
+end
+
+-- Işınlanma fonksiyonu
+local function teleportToPlayers(loop)
+    local Character = LocalPlayer.Character
+    local HumanoidRootPart = Character and Character:FindFirstChild("HumanoidRootPart")
+    local StartPosition = HumanoidRootPart and HumanoidRootPart.Position
+
+    if not HumanoidRootPart or not StartPosition then
+        warn("Karakter veya HumanoidRootPart bulunamadı!")
+        return
+    end
+
+    if loop then
+        while getgenv().loopKillAll do
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame
+                    wait(1.2)
+                end
+            end
+            HumanoidRootPart.CFrame = CFrame.new(StartPosition)
+            wait(1.2)
+        end
+    else
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame
+                wait(1.2)
+            end
+        end
+        HumanoidRootPart.CFrame = CFrame.new(StartPosition)
+    end
+end
+
+-- Ana GUI oluşturma fonksiyonu
+local function createMainGUI()
+    local success, err = pcall(function()
+        local RemoteFunction = ReplicatedStorage.Packages._Index["sleitnick_knit@1.5.1"].knit.Services.GiftService.RF.GetPresent
+        getgenv().running = false
+        getgenv().loopKillAll = false
+        local guiKeybind = "F"
+        local toggleKeybind = "Q"
+        local loopKillAllKeybind = "L"
+        local killAllKeybind = "T"
+
+        -- Keybind çakışması kontrol fonksiyonu
+        local function checkKeybindConflict(input, excludeKeybind)
+            local keybinds = {guiKeybind, toggleKeybind, loopKillAllKeybind, killAllKeybind}
+            if excludeKeybind then
+                for i, key in ipairs(keybinds) do
+                    if key == excludeKeybind then
+                        keybinds[i] = nil
+                    end
+                end
+            end
+            for _, key in ipairs(keybinds) do
+                if key and key:upper() == input:upper() then
+                    return true
+                end
+            end
+            return false
+        end
+
+        local player = game.Players.LocalPlayer
+        local playerGui = player.PlayerGui
+        local screenGui = Instance.new("ScreenGui")
+        screenGui.Name = "InfiniteEverythingGUI"
+        screenGui.Parent = playerGui
+        screenGui.ResetOnSpawn = false
+        screenGui.Enabled = true
+
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(0, 300, 0, 490)
+        frame.Position = UDim2.new(0.5, -150, 0.5, -200)
+        frame.BackgroundColor3 = Color3.fromRGB(20, 10, 30)
+        frame.BorderSizePixel = 0
+        frame.Parent = screenGui
+
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 10)
+        corner.Parent = frame
+
+        local gradient = Instance.new("UIGradient")
+        gradient.Color = ColorSequence.new{
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 30, 60)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 10, 30))
+        }
+        gradient.Rotation = 45
+        gradient.Parent = frame
+
+        local titleBar = Instance.new("Frame")
+        titleBar.Size = UDim2.new(1, 0, 0, 30)
+        titleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+        titleBar.BorderSizePixel = 0
+        titleBar.Parent = frame
+
+        local titleCorner = Instance.new("UICorner")
+        titleCorner.CornerRadius = UDim.new(0, 10)
+        titleCorner.Parent = titleBar
+
+        local titleText = Instance.new("TextLabel")
+        titleText.Size = UDim2.new(0.7, 0, 1, 0)
+        titleText.Position = UDim2.new(0.1, 0, 0, 0)
+        titleText.BackgroundTransparency = 1
+        titleText.Text = "Infinite Everything"
+        titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+        titleText.TextScaled = true
+        titleText.Font = Enum.Font.GothamBold
+        titleText.Parent = titleBar
+
+        local closeButton = Instance.new("TextButton")
+        closeButton.Size = UDim2.new(0, 30, 0, 30)
+        closeButton.Position = UDim2.new(1, -30, 0, 0)
+        closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        closeButton.Text = "X"
+        closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        closeButton.TextScaled = true
+        closeButton.Font = Enum.Font.GothamBold
+        closeButton.Parent = titleBar
+
+        local closeCorner = Instance.new("UICorner")
+        closeCorner.CornerRadius = UDim.new(0, 5)
+        closeCorner.Parent = closeButton
+
+        local minimizeButton = Instance.new("TextButton")
+        minimizeButton.Size = UDim2.new(0, 30, 0, 30)
+        minimizeButton.Position = UDim2.new(1, -60, 0, 0)
+        minimizeButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        minimizeButton.Text = "-"
+        minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        minimizeButton.TextScaled = true
+        minimizeButton.Font = Enum.Font.GothamBold
+        minimizeButton.Parent = titleBar
+
+        local minimizeCorner = Instance.new("UICorner")
+        minimizeCorner.CornerRadius = UDim.new(0, 5)
+        minimizeCorner.Parent = minimizeButton
+
+        local toggleButton = Instance.new("TextButton")
+        toggleButton.Size = UDim2.new(0, 150, 0, 40) -- Increased width for longer text
+        toggleButton.Position = UDim2.new(0.5, -75, 0.15, 0) -- Adjusted position for centering
+        toggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+        toggleButton.Text = "Spam Everything: OFF"
+        toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        toggleButton.TextScaled = true
+        toggleButton.Font = Enum.Font.GothamBold
+        toggleButton.Parent = frame
+
+        local toggleCorner = Instance.new("UICorner")
+        toggleCorner.CornerRadius = UDim.new(0, 10)
+        toggleCorner.Parent = toggleButton
+
+        local statusLabel = Instance.new("TextLabel")
+        statusLabel.Size = UDim2.new(0, 200, 0, 30)
+        statusLabel.Position = UDim2.new(0.5, -100, 0.25, 0)
+        statusLabel.BackgroundTransparency = 1
+        statusLabel.Text = "Spam Everything: OFF"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+        statusLabel.TextScaled = true
+        statusLabel.Font = Enum.Font.Gotham
+        statusLabel.Parent = frame
+
+        local loopKillAllButton = Instance.new("TextButton")
+        loopKillAllButton.Size = UDim2.new(0, 100, 0, 40)
+        loopKillAllButton.Position = UDim2.new(0.5, -50, 0.35, 0)
+        loopKillAllButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+        loopKillAllButton.Text = "Loop Kill All: OFF"
+        loopKillAllButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        loopKillAllButton.TextScaled = true
+        loopKillAllButton.Font = Enum.Font.GothamBold
+        loopKillAllButton.Parent = frame
+
+        local loopKillAllCorner = Instance.new("UICorner")
+        loopKillAllCorner.CornerRadius = UDim.new(0, 10)
+        loopKillAllCorner.Parent = loopKillAllButton
+
+        local loopKillAllStatusLabel = Instance.new("TextLabel")
+        loopKillAllStatusLabel.Size = UDim2.new(0, 200, 0, 30)
+        loopKillAllStatusLabel.Position = UDim2.new(0.5, -100, 0.45, 0)
+        loopKillAllStatusLabel.BackgroundTransparency = 1
+        loopKillAllStatusLabel.Text = "Loop Kill All: OFF"
+        loopKillAllStatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+        loopKillAllStatusLabel.TextScaled = true
+        loopKillAllStatusLabel.Font = Enum.Font.Gotham
+        loopKillAllStatusLabel.Parent = frame
+
+        local killAllButton = Instance.new("TextButton")
+        killAllButton.Size = UDim2.new(0, 100, 0, 40)
+        killAllButton.Position = UDim2.new(0.5, -50, 0.55, 0)
+        killAllButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        killAllButton.Text = "Kill All"
+        killAllButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        killAllButton.TextScaled = true
+        killAllButton.Font = Enum.Font.GothamBold
+        killAllButton.Parent = frame
+
+        local killAllCorner = Instance.new("UICorner")
+        killAllCorner.CornerRadius = UDim.new(0, 10)
+        killAllCorner.Parent = killAllButton
+
+        local guiKeybindLabel = Instance.new("TextLabel")
+        guiKeybindLabel.Size = UDim2.new(0, 100, 0, 30)
+        guiKeybindLabel.Position = UDim2.new(0.15, 0, 0.65, 0)
+        guiKeybindLabel.BackgroundTransparency = 1
+        guiKeybindLabel.Text = "GUI Keybind:"
+        guiKeybindLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        guiKeybindLabel.TextScaled = true
+        guiKeybindLabel.Font = Enum.Font.Gotham
+        guiKeybindLabel.Parent = frame
+
+        local guiKeybindTextbox = Instance.new("TextBox")
+        guiKeybindTextbox.Size = UDim2.new(0, 30, 0, 30)
+        guiKeybindTextbox.Position = UDim2.new(0.65, 0, 0.65, 0)
+        guiKeybindTextbox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        guiKeybindTextbox.Text = guiKeybind
+        guiKeybindTextbox.TextColor3 = Color3.fromRGB(255, 255, 255)
+        guiKeybindTextbox.TextScaled = true
+        guiKeybindTextbox.Font = Enum.Font.GothamBold
+        guiKeybindTextbox.Parent = frame
+
+        local guiKeybindCorner = Instance.new("UICorner")
+        guiKeybindCorner.CornerRadius = UDim.new(0, 5)
+        guiKeybindCorner.Parent = guiKeybindTextbox
+
+        local toggleKeybindLabel = Instance.new("TextLabel")
+        toggleKeybindLabel.Size = UDim2.new(0, 100, 0, 30)
+        toggleKeybindLabel.Position = UDim2.new(0.15, 0, 0.75, 0)
+        toggleKeybindLabel.BackgroundTransparency = 1
+        toggleKeybindLabel.Text = "Toggle Keybind:"
+        toggleKeybindLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        toggleKeybindLabel.TextScaled = true
+        toggleKeybindLabel.Font = Enum.Font.Gotham
+        toggleKeybindLabel.Parent = frame
+
+        local toggleKeybindTextbox = Instance.new("TextBox")
+        toggleKeybindTextbox.Size = UDim2.new(0, 30, 0, 30)
+        toggleKeybindTextbox.Position = UDim2.new(0.65, 0, 0.75, 0)
+        toggleKeybindTextbox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        toggleKeybindTextbox.Text = toggleKeybind
+        toggleKeybindTextbox.TextColor3 = Color3.fromRGB(255, 255, 255)
+        toggleKeybindTextbox.TextScaled = true
+        toggleKeybindTextbox.Font = Enum.Font.GothamBold
+        toggleKeybindTextbox.Parent = frame
+
+        local toggleKeybindCorner = Instance.new("UICorner")
+        toggleKeybindCorner.CornerRadius = UDim.new(0, 5)
+        toggleKeybindCorner.Parent = toggleKeybindTextbox
+
+        local loopKillAllKeybindLabel = Instance.new("TextLabel")
+        loopKillAllKeybindLabel.Size = UDim2.new(0, 100, 0, 30)
+        loopKillAllKeybindLabel.Position = UDim2.new(0.15, 0, 0.85, 0)
+        loopKillAllKeybindLabel.BackgroundTransparency = 1
+        loopKillAllKeybindLabel.Text = "Loop Kill All Keybind:"
+        loopKillAllKeybindLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        loopKillAllKeybindLabel.TextScaled = true
+        loopKillAllKeybindLabel.Font = Enum.Font.Gotham
+        loopKillAllKeybindLabel.Parent = frame
+
+        local loopKillAllKeybindTextbox = Instance.new("TextBox")
+        loopKillAllKeybindTextbox.Size = UDim2.new(0, 30, 0, 30)
+        loopKillAllKeybindTextbox.Position = UDim2.new(0.65, 0, 0.85, 0)
+        loopKillAllKeybindTextbox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        loopKillAllKeybindTextbox.Text = loopKillAllKeybind
+        loopKillAllKeybindTextbox.TextColor3 = Color3.fromRGB(255, 255, 255)
+        loopKillAllKeybindTextbox.TextScaled = true
+        loopKillAllKeybindTextbox.Font = Enum.Font.GothamBold
+        loopKillAllKeybindTextbox.Parent = frame
+
+        local loopKillAllKeybindCorner = Instance.new("UICorner")
+        loopKillAllKeybindCorner.CornerRadius = UDim.new(0, 5)
+        loopKillAllKeybindCorner.Parent = loopKillAllKeybindTextbox
+
+        local killAllKeybindLabel = Instance.new("TextLabel")
+        killAllKeybindLabel.Size = UDim2.new(0, 100, 0, 30)
+        killAllKeybindLabel.Position = UDim2.new(0.15, 0, 0.95, 0)
+        killAllKeybindLabel.BackgroundTransparency = 1
+        killAllKeybindLabel.Text = "Kill All Keybind:"
+        killAllKeybindLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        killAllKeybindLabel.TextScaled = true
+        killAllKeybindLabel.Font = Enum.Font.Gotham
+        killAllKeybindLabel.Parent = frame
+
+        local killAllKeybindTextbox = Instance.new("TextBox")
+        killAllKeybindTextbox.Size = UDim2.new(0, 30, 0, 30)
+        killAllKeybindTextbox.Position = UDim2.new(0.65, 0, 0.95, 0)
+        killAllKeybindTextbox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        killAllKeybindTextbox.Text = killAllKeybind
+        killAllKeybindTextbox.TextColor3 = Color3.fromRGB(255, 255, 255)
+        killAllKeybindTextbox.TextScaled = true
+        killAllKeybindTextbox.Font = Enum.Font.GothamBold
+        killAllKeybindTextbox.Parent = frame
+
+        local killAllKeybindCorner = Instance.new("UICorner")
+        killAllKeybindCorner.CornerRadius = UDim.new(0, 5)
+        killAllKeybindCorner.Parent = killAllKeybindTextbox
+
+        local toggleStroke = Instance.new("UIStroke")
+        toggleStroke.Thickness = 2
+        toggleStroke.Color = Color3.fromRGB(0, 255, 255)
+        toggleStroke.Enabled = false
+        toggleStroke.Parent = toggleButton
+
+        local loopKillAllStroke = Instance.new("UIStroke")
+        loopKillAllStroke.Thickness = 2
+        loopKillAllStroke.Color = Color3.fromRGB(0, 255, 255)
+        loopKillAllStroke.Enabled = false
+        loopKillAllStroke.Parent = loopKillAllButton
+
+        local dragging
+        local dragInput
+        local dragStart
+        local startPos
+
+        local function updateInput(input)
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+
+        titleBar.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true
+                dragStart = input.Position
+                startPos = frame.Position
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        dragging = false
+                    end
+                end)
+            end
+        end)
+
+        titleBar.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                dragInput = input
+            end
+        end)
+
+        UserInputService.InputChanged:Connect(function(input)
+            if input == dragInput and dragging then
+                updateInput(input)
+            end
+        end)
+
+        local function toggleState()
+            getgenv().running = not getgenv().running
+            if getgenv().running then
+                toggleButton.Text = "Spam Everything: ON"
+                toggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+                statusLabel.Text = "Spam Everything: ON"
+                statusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+                toggleStroke.Enabled = true
+                for i = 1, 5 do
+                    spawn(function()
+                        while getgenv().running do
+                            local success, err = pcall(function()
+                                RemoteFunction:InvokeServer("Present")
+                            end)
+                            if not success then
+                                warn("GiftService Error:", err)
+                            end
+                            task.wait(0.1)
+                        end
+                    end)
+                end
+            else
+                toggleButton.Text = "Everything Spam: OFF"
+                toggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+                statusLabel.Text = "Spam Everything: OFF"
+                statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+                toggleStroke.Enabled = false
+            end
+        end
+
+        local function toggleLoopKillAll()
+            getgenv().loopKillAll = not getgenv().loopKillAll
+            if getgenv().loopKillAll then
+                loopKillAllButton.Text = "Loop Kill All: ON"
+                loopKillAllButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+                loopKillAllStatusLabel.Text = "Loop Kill All: ON"
+                loopKillAllStatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+                loopKillAllStroke.Enabled = true
+                spawn(function()
+                    teleportToPlayers(true)
+                end)
+            else
+                loopKillAllButton.Text = "Loop Kill All: OFF"
+                loopKillAllButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+                loopKillAllStatusLabel.Text = "Loop Kill All: OFF"
+                loopKillAllStatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+                loopKillAllStroke.Enabled = false
+            end
+        end
+
+        local function triggerKillAll()
+            spawn(function()
+                teleportToPlayers(false)
+            end)
+        end
+
+        closeButton.MouseButton1Click:Connect(function()
+            if getgenv().running then
+                toggleState()
+            end
+            if getgenv().loopKillAll then
+                toggleLoopKillAll()
+            end
+            screenGui:Destroy()
+        end)
+
+        local isMinimized = false
+        minimizeButton.MouseButton1Click:Connect(function()
+            isMinimized = not isMinimized
+            if isMinimized then
+                local tween = TweenService:Create(frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 300, 0, 30)})
+                tween:Play()
+                toggleButton.Visible = false
+                statusLabel.Visible = false
+                loopKillAllButton.Visible = false
+                loopKillAllStatusLabel.Visible = false
+                killAllButton.Visible = false
+                guiKeybindLabel.Visible = false
+                guiKeybindTextbox.Visible = false
+                toggleKeybindLabel.Visible = false
+                toggleKeybindTextbox.Visible = false
+                loopKillAllKeybindLabel.Visible = false
+                loopKillAllKeybindTextbox.Visible = false
+                killAllKeybindLabel.Visible = false
+                killAllKeybindTextbox.Visible = false
+                minimizeButton.Text = "+"
+            else
+                local tween = TweenService:Create(frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 300, 0, 490)})
+                tween:Play()
+                toggleButton.Visible = true
+                statusLabel.Visible = true
+                loopKillAllButton.Visible = true
+                loopKillAllStatusLabel.Visible = true
+                killAllButton.Visible = true
+                guiKeybindLabel.Visible = true
+                guiKeybindTextbox.Visible = true
+                toggleKeybindLabel.Visible = true
+                toggleKeybindTextbox.Visible = true
+                loopKillAllKeybindLabel.Visible = true
+                loopKillAllKeybindTextbox.Visible = true
+                killAllKeybindLabel.Visible = true
+                killAllKeybindTextbox.Visible = true
+                minimizeButton.Text = "-"
+            end
+        end)
+
+        toggleButton.MouseButton1Click:Connect(toggleState)
+
+        loopKillAllButton.MouseButton1Click:Connect(toggleLoopKillAll)
+
+        killAllButton.MouseButton1Click:Connect(triggerKillAll)
+
+        guiKeybindTextbox.FocusLost:Connect(function(enterPressed)
+            if enterPressed then
+                local input = guiKeybindTextbox.Text:upper()
+                if #input == 1 and input:match("%w") and not checkKeybindConflict(input, guiKeybind) then
+                    guiKeybind = input
+                    guiKeybindTextbox.Text = input
+                else
+                    guiKeybindTextbox.Text = guiKeybind
+                end
+            end
+        end)
+
+        toggleKeybindTextbox.FocusLost:Connect(function(enterPressed)
+            if enterPressed then
+                local input = toggleKeybindTextbox.Text:upper()
+                if #input == 1 and input:match("%w") and not checkKeybindConflict(input, toggleKeybind) then
+                    toggleKeybind = input
+                    toggleKeybindTextbox.Text = input
+                else
+                    toggleKeybindTextbox.Text = toggleKeybind
+                end
+            end
+        end)
+
+        loopKillAllKeybindTextbox.FocusLost:Connect(function(enterPressed)
+            if enterPressed then
+                local input = loopKillAllKeybindTextbox.Text:upper()
+                if #input == 1 and input:match("%w") and not checkKeybindConflict(input, loopKillAllKeybind) then
+                    loopKillAllKeybind = input
+                    loopKillAllKeybindTextbox.Text = input
+                else
+                    loopKillAllKeybindTextbox.Text = loopKillAllKeybind
+                end
+            end
+        end)
+
+        killAllKeybindTextbox.FocusLost:Connect(function(enterPressed)
+            if enterPressed then
+                local input = killAllKeybindTextbox.Text:upper()
+                if #input == 1 and input:match("%w") and not checkKeybindConflict(input, killAllKeybind) then
+                    killAllKeybind = input
+                    killAllKeybindTextbox.Text = input
+                else
+                    killAllKeybindTextbox.Text = killAllKeybind
+                end
+            end
+        end)
+
+        UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+            if gameProcessedEvent then return end
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                local key = input.KeyCode.Name:upper()
+                if key == guiKeybind then
+                    screenGui.Enabled = not screenGui.Enabled
+                elseif key == toggleKeybind then
+                    toggleState()
+                elseif key == loopKillAllKeybind then
+                    toggleLoopKillAll()
+                elseif key == killAllKeybind then
+                    triggerKillAll()
+                end
+            end
+        end)
+
+        toggleButton.MouseEnter:Connect(function()
+            local tween = TweenService:Create(toggleButton, TweenInfo.new(0.2), {BackgroundColor3 = getgenv().running and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(150, 150, 150)})
+            tween:Play()
+        end)
+
+        toggleButton.MouseLeave:Connect(function()
+            local tween = TweenService:Create(toggleButton, TweenInfo.new(0.2), {BackgroundColor3 = getgenv().running and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(100, 100, 100)})
+            tween:Play()
+        end)
+
+        loopKillAllButton.MouseEnter:Connect(function()
+            local tween = TweenService:Create(loopKillAllButton, TweenInfo.new(0.2), {BackgroundColor3 = getgenv().loopKillAll and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(150, 150, 150)})
+            tween:Play()
+        end)
+
+        loopKillAllButton.MouseLeave:Connect(function()
+            local tween = TweenService:Create(loopKillAllButton, TweenInfo.new(0.2), {BackgroundColor3 = getgenv().loopKillAll and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(100, 100, 100)})
+            tween:Play()
+        end)
+
+        killAllButton.MouseEnter:Connect(function()
+            local tween = TweenService:Create(killAllButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 50, 50)})
+            tween:Play()
+        end)
+
+        killAllButton.MouseLeave:Connect(function()
+            local tween = TweenService:Create(killAllButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(200, 50, 50)})
+            tween:Play()
+        end)
+
+        closeButton.MouseEnter:Connect(function()
+            local tween = TweenService:Create(closeButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 50, 50)})
+            tween:Play()
+        end)
+
+        closeButton.MouseLeave:Connect(function()
+            local tween = TweenService:Create(closeButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(200, 50, 50)})
+            tween:Play()
+        end)
+
+        minimizeButton.MouseEnter:Connect(function()
+            local tween = TweenService:Create(minimizeButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(80, 80, 80)})
+            tween:Play()
+        end)
+
+        minimizeButton.MouseLeave:Connect(function()
+            local tween = TweenService:Create(minimizeButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 50)})
+            tween:Play()
+        end)
+    end)
+    if not success then
+        warn("Main GUI creation failed:", err)
+    end
+end
+
+-- PlaceId kontrolü ve uygun GUI'yi gösterme
+local success, err = pcall(function()
+    if currentPlaceId == SUPPORTED_PLACE_ID then
+        createMainGUI()
+    else
+        createNotification()
+    end
+end)
+if not success then
+    warn("Script initialization failed:", err)
+end
